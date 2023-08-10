@@ -14,11 +14,14 @@ async function fetchMEXCOrderBooks() {
 
 export default function Home() {
   const [orderBooks, setOrderBooks] = useState<TBookOrder | null>(null);
+  const [totalAmountSALD, setTotalAmountSALD] = useState<Array<number>>([]);
 
+  // TODO: Add functionality to fetch every 10 seconds
   useEffect(() => {
     async function getOrderBooks() {
-      const { response } = await fetchMEXCOrderBooks();
-      setOrderBooks(response);
+      const { bookOrderData, totalAmountSALD } = await fetchMEXCOrderBooks();
+      setOrderBooks(bookOrderData);
+      setTotalAmountSALD(totalAmountSALD);
     }
 
     getOrderBooks();
@@ -33,6 +36,9 @@ export default function Home() {
             <tr>
               <th scope="col" className="px-6 py-3">
                 Level
+              </th>
+              <th scope="col" className="px-6 py-3">
+                SALD Amount
               </th>
               <th scope="col" className="px-6 py-3">
                 Total SALD
@@ -60,6 +66,7 @@ export default function Home() {
                       {ask[0]}
                     </th>
                     <td className="px-6 py-4">{ask[1]}</td>
+                    <td className="px-6 py-4">{totalAmountSALD[index]}</td>
                     <td className="px-6 py-4">
                       {parseFloat(ask[0]) * parseFloat(ask[1])}
                     </td>
