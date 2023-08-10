@@ -12,15 +12,57 @@ async function fetchMEXCOrderBooks() {
   return data.json();
 }
 
+// SALD and USDT Amount is for that specific row
+// Function to be called in a loop to handle one transaction at a time
+async function sendTransaction(
+  index: number,
+  saldAmount: number,
+  usdtAmount: number,
+  price: number
+) {
+  const data = await fetch("http://localhost:3000/bybit", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      index,
+      saldAmount,
+      usdtAmount,
+      price
+    }),
+  });
+
+  if (!data.ok) {
+    throw new Error(`Failed to send transaction at index: ${index} for ${saldAmount} SALD.`);
+  }
+
+  return data.json();
+}
+
 export default function Home() {
   const [orderBooks, setOrderBooks] = useState<TBookOrder | null>(null);
   const [totalAmountSALD, setTotalAmountSALD] = useState<Array<number>>([]);
   const [totalAmountUSDT, setTotalAmountUSDT] = useState<Array<number>>([]);
 
+  const handleTrade = (tradeIndex: number) => {
+    // From the trade index, I will need to make a place order from the last index till the trade index. Passing in the value of total SALD and total USDT;
+    const asks = orderBooks?.asks;
+    if (asks) {
+      for (let i = asks.length - 1; i >= tradeIndex; i--) {
+        const saldAmount = parseFloat(asks[i][1]);
+        const price = parseFloat(asks[i][0]);
+        const usdtAmount = price * saldAmount;
+        sendTransaction(i, saldAmount, usdtAmount, price);
+      }
+    }
+  };
+
   // TODO: Add functionality to fetch every 10 seconds
   useEffect(() => {
     async function getOrderBooks() {
-      const { bookOrderData, totalAmountSALD, totalAmountUSDT } = await fetchMEXCOrderBooks();
+      const { bookOrderData, totalAmountSALD, totalAmountUSDT } =
+        await fetchMEXCOrderBooks();
       setOrderBooks(bookOrderData);
       setTotalAmountSALD(totalAmountSALD);
       setTotalAmountUSDT(totalAmountUSDT);
@@ -61,6 +103,14 @@ export default function Home() {
           <tbody>
             {orderBooks !== null &&
               orderBooks?.asks.map((ask, index) => {
+                const level = ask[0];
+                const sald = ask[1];
+                const usdt = (parseFloat(ask[0]) * parseFloat(ask[1])).toFixed(
+                  3
+                );
+                const totalSALD = totalAmountSALD[index].toFixed(3);
+                const totalUSDT = totalAmountUSDT[index].toFixed(3);
+
                 return (
                   <tr
                     className="bg-white border-b dark:bg-gray-800 dark:border-gray-700"
@@ -70,20 +120,17 @@ export default function Home() {
                       scope="row"
                       className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
                     >
-                      {ask[0]}
+                      {level}
                     </th>
-                    <td className="px-6 py-4">{ask[1]}</td>
-                    <td className="px-6 py-4">
-                      {(parseFloat(ask[0]) * parseFloat(ask[1])).toFixed(3)}
-                    </td>
-                    <td className="px-6 py-4">{totalAmountSALD[index].toFixed(3)}</td>
-                    <td className="px-6 py-4">
-                      {totalAmountUSDT[index].toFixed(3)}
-                    </td>
+                    <td className="px-6 py-4">{sald}</td>
+                    <td className="px-6 py-4">{usdt}</td>
+                    <td className="px-6 py-4">{totalSALD}</td>
+                    <td className="px-6 py-4">{totalUSDT}</td>
                     <td className="px-6 py-4">
                       <button
                         type="button"
                         className="text-red-700 hover:text-white border border-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2 mb-2 dark:border-red-500 dark:text-red-500 dark:hover:text-white dark:hover:bg-red-600 dark:focus:ring-red-900"
+                        onClick={() => handleTrade(index)}
                       >
                         Trade
                       </button>
