@@ -15,13 +15,15 @@ async function fetchMEXCOrderBooks() {
 export default function Home() {
   const [orderBooks, setOrderBooks] = useState<TBookOrder | null>(null);
   const [totalAmountSALD, setTotalAmountSALD] = useState<Array<number>>([]);
+  const [totalAmountUSDT, setTotalAmountUSDT] = useState<Array<number>>([]);
 
   // TODO: Add functionality to fetch every 10 seconds
   useEffect(() => {
     async function getOrderBooks() {
-      const { bookOrderData, totalAmountSALD } = await fetchMEXCOrderBooks();
+      const { bookOrderData, totalAmountSALD, totalAmountUSDT } = await fetchMEXCOrderBooks();
       setOrderBooks(bookOrderData);
       setTotalAmountSALD(totalAmountSALD);
+      setTotalAmountUSDT(totalAmountUSDT);
     }
 
     getOrderBooks();
@@ -29,7 +31,9 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center">
-      <h3 className="font-bold text-2xl underline mb-4">MEXC Sell Order Books</h3>
+      <h3 className="font-bold text-2xl underline mb-4">
+        MEXC Sell Order Books
+      </h3>
       <div className="relative overflow-x-auto rounded-lg">
         <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
           <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
@@ -39,6 +43,9 @@ export default function Home() {
               </th>
               <th scope="col" className="px-6 py-3">
                 SALD Amount
+              </th>
+              <th scope="col" className="px-6 py-3">
+                USDT Amount
               </th>
               <th scope="col" className="px-6 py-3">
                 Total SALD
@@ -66,9 +73,12 @@ export default function Home() {
                       {ask[0]}
                     </th>
                     <td className="px-6 py-4">{ask[1]}</td>
-                    <td className="px-6 py-4">{totalAmountSALD[index]}</td>
                     <td className="px-6 py-4">
-                      {parseFloat(ask[0]) * parseFloat(ask[1])}
+                      {(parseFloat(ask[0]) * parseFloat(ask[1])).toFixed(3)}
+                    </td>
+                    <td className="px-6 py-4">{totalAmountSALD[index].toFixed(3)}</td>
+                    <td className="px-6 py-4">
+                      {totalAmountUSDT[index].toFixed(3)}
                     </td>
                     <td className="px-6 py-4">
                       <button

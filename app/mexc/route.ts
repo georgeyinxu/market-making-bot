@@ -12,6 +12,8 @@ export interface TBookOrder {
 export async function GET(req: NextApiRequest, res: NextApiResponse) {
   let bookOrderData: TBookOrder | null = null;
   let totalAmountSALD: Array<number> = [];
+  let totalAmountUSDT: Array<number> = [];
+  let asksCopy: [string, string][] = [];
   let prevAmount = 0;
 
   try {
@@ -22,18 +24,23 @@ export async function GET(req: NextApiRequest, res: NextApiResponse) {
     bookOrderData = bookOrderResponse.data;
 
     if (bookOrderData) {
-        const asks = bookOrderData.asks;
-        bookOrderData.asks = asks.reverse();
+      const asks = bookOrderData.asks;
+      asksCopy = asks;
+      bookOrderData.asks = asks.reverse();
     }
 
-    bookOrderData?.asks.map((ask) => {
-      const total = prevAmount + parseFloat(ask[1]);
-      totalAmountSALD.unshift(total);
-      prevAmount = total;
-    });
+    for (let i = asksCopy.length - 1; i >= 0; --i) {
+      const totalSALD = prevAmount + parseFloat(asksCopy[i][1]);
+      totalAmountSALD.unshift(totalSALD);
+      
+      const totalUSDT = totalSALD * parseFloat(asksCopy[i][0]);
+      totalAmountUSDT.unshift(totalUSDT);
+
+      prevAmount = totalSALD;
+    }
   } catch (error) {
     return res.status(400).send("Error due to: " + error);
   }
 
-  return NextResponse.json({ bookOrderData, totalAmountSALD });
+  return NextResponse.json({ bookOrderData, totalAmountSALD, totalAmountUSDT });
 }
