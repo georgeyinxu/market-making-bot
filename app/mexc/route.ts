@@ -54,8 +54,6 @@ export async function POST(req: Request, res: NextApiResponse) {
   // Place buy orders on MEXC for identified levels
   let { quantity, price, index } = await req.json();
   let buyOrderData = {};
-  quantity = 200;
-  price = 0.029;
 
   try {
     client

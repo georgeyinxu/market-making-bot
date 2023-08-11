@@ -18,9 +18,6 @@ export async function POST(req: Request, res: NextApiResponse) {
   let { index, saldAmount, price }: ITransactionBody = await req.json();
   let orderId = "";
 
-  saldAmount = 200;
-  price = 0.029;
-
   try {
     const result = await client.submitOrder({
       category: "spot",
