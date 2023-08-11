@@ -25,7 +25,7 @@ export async function POST(req: Request, res: NextApiResponse) {
       symbol: process.env.SYMBOL ? process.env.SYMBOL : "",
       side: "Sell",
       orderType: "Limit",
-      qty: saldAmount.toString(), // Check if this is supposed to be USDT or SALD
+      qty: saldAmount.toString(), // SALD Amount
       price: price.toString(),
       timeInForce: "GTC",
     });

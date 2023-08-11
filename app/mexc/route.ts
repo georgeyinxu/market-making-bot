@@ -32,7 +32,7 @@ export async function GET(req: NextApiRequest, res: NextApiResponse) {
     for (let i = asksCopy.length - 1; i >= 0; --i) {
       const totalSALD = prevAmount + parseFloat(asksCopy[i][1]);
       totalAmountSALD.unshift(totalSALD);
-      
+
       const totalUSDT = totalSALD * parseFloat(asksCopy[i][0]);
       totalAmountUSDT.unshift(totalUSDT);
 
@@ -43,4 +43,30 @@ export async function GET(req: NextApiRequest, res: NextApiResponse) {
   }
 
   return NextResponse.json({ bookOrderData, totalAmountSALD, totalAmountUSDT });
+}
+
+export async function POST(req: Request, res: NextApiResponse) {
+  // Place buy orders on MEXC for identified levels
+  const { quantity, price, index } = await req.json();
+  let buyOrderData = {};
+
+  try {
+    const buyOrderResponse: AxiosResponse = await axios.post(
+      `${process.env.MEXC_API_URL}/api/v3/order?symbol=${
+        process.env.SYMBOL
+      }&side=BUY&type=LIMIT&quantity=${quantity}&price=${price}&timestamp=${Date.now()}&signature=${
+        process.env.MEXC_SIGNATURE
+      }`,
+      {
+        headers: {
+          "x-mexc-apikey": process.env.MEXC_API_KEY,
+        },
+      }
+    );
+
+    buyOrderData = buyOrderResponse.data;
+  } catch (error) {
+    return res.status(400).send("Error due to: " + error);
+  }
+  return NextResponse.json({ index, buyOrderData });
 }
