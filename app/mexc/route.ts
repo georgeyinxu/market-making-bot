@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import axios, { AxiosResponse } from "axios";
 import { NextApiRequest, NextApiResponse } from "next";
 
+import Spot from "./spot";
+const client = new Spot(process.env.MEXC_API_KEY, process.env.MEXC_API_SECRET, {
+  baseURL: process.env.MEXC_API_URL,
+});
+
 export interface TBookOrder {
   lastUpdateId: number;
   bids: [string, string][];
@@ -50,24 +55,33 @@ export async function POST(req: Request, res: NextApiResponse) {
   let { quantity, price, index } = await req.json();
   let buyOrderData = {};
   quantity = 24;
-  price = 0.03100;
+  price = 0.031;
 
   try {
-    const buyOrderResponse: AxiosResponse = await axios.post(
-      `${process.env.MEXC_API_URL}/api/v3/order?symbol=${
-        process.env.SYMBOL
-      }&side=BUY&type=LIMIT&quantity=${quantity}&price=${price}&timestamp=${Date.now()}&signature=${
-        process.env.MEXC_SIGNATURE
-      }`,
-      {},
-      {
-        headers: {
-          "x-mexc-apikey": process.env.MEXC_API_KEY,
-        },
-      }
-    );
+    // const buyOrderResponse: AxiosResponse = await axios.post(
+    //   `${process.env.MEXC_API_URL}/api/v3/order?symbol=${
+    //     process.env.SYMBOL
+    //   }&side=BUY&type=LIMIT&quantity=${quantity}&price=${price}&timestamp=${Date.now()}&signature=${
+    //     process.env.MEXC_SIGNATURE
+    //   }`,
+    //   {},
+    //   {
+    //     headers: {
+    //       "x-mexc-apikey": process.env.MEXC_API_KEY,
+    //     },
+    //   }
+    // );
 
-    buyOrderData = buyOrderResponse.data;
+    // buyOrderData = buyOrderResponse.data;
+    client
+      .Order({
+        type: "LIMIT",
+        price,
+        quantity,
+        symbol: process.env.SYMBOL,
+        side: "BUY",
+      })
+      .then((response) => client.logger.log(response.data));
   } catch (error) {
     console.log(error);
     return res.status(400).send("Error due to: " + error);
