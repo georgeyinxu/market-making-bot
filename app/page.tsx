@@ -12,6 +12,26 @@ async function fetchMEXCOrderBooks() {
   return data.json();
 }
 
+async function fetchMEXCAccountDetails() {
+  const data = await fetch(`http://localhost:3000/mexc/account`);
+
+  if (!data.ok) {
+    throw new Error("Failed to fetch account details");
+  }
+
+  return data.json();
+}
+
+async function fetchByBitAccountDetails() {
+  const data = await fetch(`http://localhost:3000/bybit`);
+
+  if (!data.ok) {
+    throw new Error("Failed to fetch account details");
+  }
+
+  return data.json();
+}
+
 // SALD and USDT Amount is for that specific row
 // Function to be called in a loop to handle one transaction at a time
 async function sendTransaction(
@@ -65,6 +85,10 @@ export default function Home() {
   const [completedTradeIndexes, setCompletedTradeIndexes] = useState<
     Array<number>
   >([]);
+  const [bybitUSDT, setBybitUSDT] = useState<number>(0);
+  const [bybitSALD, setBybitSALD] = useState<number>(0);
+  const [mexcUSDT, setMexcUSDT] = useState<number>(0);
+  const [mexcSALD, setMexcSALD] = useState<number>(0);
 
   async function getOrderBooks() {
     const { bookOrderData, totalAmountSALD, totalAmountUSDT } =
@@ -72,6 +96,16 @@ export default function Home() {
     setOrderBooks(bookOrderData);
     setTotalAmountSALD(totalAmountSALD);
     setTotalAmountUSDT(totalAmountUSDT);
+  }
+
+  async function getBalances() {
+    const mexcWallet = await fetchMEXCAccountDetails();
+    const bybitWallet = await fetchByBitAccountDetails();
+
+    setBybitUSDT(bybitWallet.usdt);
+    setBybitSALD(bybitWallet.sald);
+    setMexcSALD(mexcWallet.sald);
+    setMexcUSDT(mexcWallet.usdt);
   }
 
   const handleTrade = (tradeIndex: number) => {
@@ -93,9 +127,11 @@ export default function Home() {
 
   useEffect(() => {
     getOrderBooks();
+    getBalances();
 
     const intervalId = setInterval(() => {
       getOrderBooks();
+      getBalances();
       setCompletedTradeIndexes([]);
     }, 10000); // 10000 milliseconds = 10 seconds
 
@@ -143,6 +179,11 @@ export default function Home() {
                 );
                 const totalSALD = totalAmountSALD[index].toFixed(3);
                 const totalUSDT = totalAmountUSDT[index].toFixed(3);
+                const isDisabled =
+                  parseFloat(totalSALD) > bybitSALD ||
+                  parseFloat(totalSALD) > mexcSALD ||
+                  parseFloat(totalUSDT) > bybitUSDT ||
+                  parseFloat(totalUSDT) > mexcUSDT;
 
                 return (
                   <tr
@@ -171,10 +212,11 @@ export default function Home() {
                       ) : (
                         <button
                           type="button"
-                          className="text-red-700 hover:text-white border border-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2 mb-2 dark:border-red-500 dark:text-red-500 dark:hover:text-white dark:hover:bg-red-600 dark:focus:ring-red-900"
+                          className="text-red-700 hover:text-white border border-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2 mb-2 dark:border-red-500 dark:text-red-500 dark:hover:text-white dark:hover:bg-red-600 dark:focus:ring-red-900 disabled:opacity-40"
                           onClick={() => handleTrade(index)}
+                          disabled={isDisabled}
                         >
-                          Trade
+                          {isDisabled ? "Insufficient" : "Trade"}
                         </button>
                       )}
                     </td>

@@ -8,10 +8,10 @@ const client = new RestClientV5({
 });
 
 interface ITransactionBody {
-  index: number,
-  saldAmount: number,
-  usdtAmount: number,
-  price: number
+  index: number;
+  saldAmount: number;
+  usdtAmount: number;
+  price: number;
 }
 
 export async function POST(req: Request, res: NextApiResponse) {
@@ -36,7 +36,35 @@ export async function POST(req: Request, res: NextApiResponse) {
     return res.status(400).send("Error due to: " + error);
   }
 
-  return NextResponse.json({ data: {
-    index
-  }, });
+  return NextResponse.json({
+    data: {
+      index,
+    },
+  });
+}
+
+export async function GET(req: Request, res: NextApiResponse) {
+  let sald = 0;
+  let usdt = 0;
+  try {
+    const result = await client.getWalletBalance({
+      accountType: "SPOT",
+    });
+
+    if (result.retMsg === "OK") {
+      const coinsList = result.result.list[0].coin
+      const usdtItem = coinsList.filter(item => item.coin === 'USDT')
+      const saldItem = coinsList.filter(item => item.coin === 'SALD')
+      
+      usdt = parseFloat(usdtItem[0].walletBalance);
+      sald = parseFloat(saldItem[0].walletBalance);
+    }
+  } catch (error) {
+    return res.status(400).send("Error due to: " + error);
+  }
+
+  return NextResponse.json({
+    usdt,
+    sald,
+  });
 }
