@@ -23,7 +23,7 @@ export async function POST(req: Request, res: NextApiResponse) {
     const result = await client.submitOrder({
       category: "spot",
       symbol: process.env.SYMBOL ? process.env.SYMBOL : "",
-      side: "Buy",
+      side: "Sell",
       orderType: "Limit",
       qty: saldAmount.toString(), // Check if this is supposed to be USDT or SALD
       price: price.toString(),

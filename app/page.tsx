@@ -29,12 +29,14 @@ async function sendTransaction(
       index,
       saldAmount,
       usdtAmount,
-      price
+      price,
     }),
   });
 
   if (!data.ok) {
-    throw new Error(`Failed to send transaction at index: ${index} for ${saldAmount} SALD.`);
+    throw new Error(
+      `Failed to send transaction at index: ${index} for ${saldAmount} SALD.`
+    );
   }
 
   return data.json();
@@ -44,35 +46,44 @@ export default function Home() {
   const [orderBooks, setOrderBooks] = useState<TBookOrder | null>(null);
   const [totalAmountSALD, setTotalAmountSALD] = useState<Array<number>>([]);
   const [totalAmountUSDT, setTotalAmountUSDT] = useState<Array<number>>([]);
+  const [completedTradeIndexes, setCompletedTradeIndexes] = useState<
+    Array<number>
+  >([]);
+  const [seconds, setSeconds] = useState<number>(5);
+
+  async function getOrderBooks() {
+    const { bookOrderData, totalAmountSALD, totalAmountUSDT } =
+      await fetchMEXCOrderBooks();
+    setOrderBooks(bookOrderData);
+    setTotalAmountSALD(totalAmountSALD);
+    setTotalAmountUSDT(totalAmountUSDT);
+  }
 
   const handleTrade = (tradeIndex: number) => {
     // From the trade index, I will need to make a place order from the last index till the trade index. Passing in the value of total SALD and total USDT;
     const asks = orderBooks?.asks;
     if (asks) {
+      let promises = [];
       for (let i = asks.length - 1; i >= tradeIndex; i--) {
         const saldAmount = parseFloat(asks[i][1]);
         const price = parseFloat(asks[i][0]);
         const usdtAmount = price * saldAmount;
-        sendTransaction(i, saldAmount, usdtAmount, price);
+        promises.push(sendTransaction(i, saldAmount, usdtAmount, price));
       }
+      Promise.all(promises).then((results) => {
+        const indexArr = results.map((res) => res.data.index);
+        setCompletedTradeIndexes(indexArr);
+      });
     }
   };
 
   // TODO: Add functionality to fetch every 10 seconds
   useEffect(() => {
-    async function getOrderBooks() {
-      const { bookOrderData, totalAmountSALD, totalAmountUSDT } =
-        await fetchMEXCOrderBooks();
-      setOrderBooks(bookOrderData);
-      setTotalAmountSALD(totalAmountSALD);
-      setTotalAmountUSDT(totalAmountUSDT);
-    }
-
     getOrderBooks();
   }, []);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center">
+    <main className="flex min-h-screen flex-col items-center justify-center py-24">
       <h3 className="font-bold text-2xl underline mb-4">
         MEXC Sell Order Books
       </h3>
@@ -127,19 +138,37 @@ export default function Home() {
                     <td className="px-6 py-4">{totalSALD}</td>
                     <td className="px-6 py-4">{totalUSDT}</td>
                     <td className="px-6 py-4">
-                      <button
-                        type="button"
-                        className="text-red-700 hover:text-white border border-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2 mb-2 dark:border-red-500 dark:text-red-500 dark:hover:text-white dark:hover:bg-red-600 dark:focus:ring-red-900"
-                        onClick={() => handleTrade(index)}
-                      >
-                        Trade
-                      </button>
+                      {completedTradeIndexes.includes(index) ? (
+                        <button
+                          type="button"
+                          className="py-2.5 px-5 mr-2 mb-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
+                          disabled
+                        >
+                          Completed Trade
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="text-red-700 hover:text-white border border-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2 mb-2 dark:border-red-500 dark:text-red-500 dark:hover:text-white dark:hover:bg-red-600 dark:focus:ring-red-900"
+                          onClick={() => handleTrade(index)}
+                        >
+                          Trade
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
               })}
           </tbody>
         </table>
+      </div>
+      <div className="absolute right-0 top-0">
+        <div
+          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+          role="alert"
+        >
+          <span className="block sm:inline">Refetching in {seconds}</span>
+        </div>
       </div>
     </main>
   );
