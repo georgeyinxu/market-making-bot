@@ -47,8 +47,10 @@ export async function GET(req: NextApiRequest, res: NextApiResponse) {
 
 export async function POST(req: Request, res: NextApiResponse) {
   // Place buy orders on MEXC for identified levels
-  const { quantity, price, index } = await req.json();
+  let { quantity, price, index } = await req.json();
   let buyOrderData = {};
+  quantity = 24;
+  price = 0.03100;
 
   try {
     const buyOrderResponse: AxiosResponse = await axios.post(
@@ -57,6 +59,7 @@ export async function POST(req: Request, res: NextApiResponse) {
       }&side=BUY&type=LIMIT&quantity=${quantity}&price=${price}&timestamp=${Date.now()}&signature=${
         process.env.MEXC_SIGNATURE
       }`,
+      {},
       {
         headers: {
           "x-mexc-apikey": process.env.MEXC_API_KEY,
@@ -66,7 +69,9 @@ export async function POST(req: Request, res: NextApiResponse) {
 
     buyOrderData = buyOrderResponse.data;
   } catch (error) {
+    console.log(error);
     return res.status(400).send("Error due to: " + error);
   }
+
   return NextResponse.json({ index, buyOrderData });
 }

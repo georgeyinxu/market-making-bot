@@ -3,7 +3,6 @@ import { RestClientV5 } from "bybit-api";
 import { NextResponse } from "next/server";
 
 const client = new RestClientV5({
-  testnet: true,
   key: process.env.BYBIT_API_KEY,
   secret: process.env.BYBIT_API_SECRET,
 });
@@ -16,8 +15,11 @@ interface ITransactionBody {
 }
 
 export async function POST(req: Request, res: NextApiResponse) {
-  const { index, saldAmount, usdtAmount, price }: ITransactionBody = await req.json();
+  let { index, saldAmount, price }: ITransactionBody = await req.json();
   let orderId = "";
+
+  saldAmount = 24;
+  price = 0.03999;
 
   try {
     const result = await client.submitOrder({

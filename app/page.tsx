@@ -17,7 +17,6 @@ async function fetchMEXCOrderBooks() {
 async function sendTransaction(
   index: number,
   saldAmount: number,
-  usdtAmount: number,
   price: number
 ) {
   const data = await fetch("http://localhost:3000/bybit", {
@@ -28,15 +27,32 @@ async function sendTransaction(
     body: JSON.stringify({
       index,
       saldAmount,
-      usdtAmount,
       price,
     }),
   });
 
   if (!data.ok) {
     throw new Error(
-      `Failed to send transaction at index: ${index} for ${saldAmount} SALD.`
+      `Failed to send transaction at index: ${index} for ${saldAmount} SALD from `
     );
+  } else {
+    const buyFromMexc = await fetch("http://localhost:3000/mexc", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        index,
+        quantity: saldAmount,
+        price,
+      }),
+    });
+
+    if (!buyFromMexc.ok) {
+      throw new Error(
+        `Failed to send buy order at index: ${index} for ${saldAmount} SALD from MEXC.`
+      );
+    }
   }
 
   return data.json();
@@ -49,7 +65,6 @@ export default function Home() {
   const [completedTradeIndexes, setCompletedTradeIndexes] = useState<
     Array<number>
   >([]);
-  const [seconds, setSeconds] = useState<number>(5);
 
   async function getOrderBooks() {
     const { bookOrderData, totalAmountSALD, totalAmountUSDT } =
@@ -67,8 +82,7 @@ export default function Home() {
       for (let i = asks.length - 1; i >= tradeIndex; i--) {
         const saldAmount = parseFloat(asks[i][1]);
         const price = parseFloat(asks[i][0]);
-        const usdtAmount = price * saldAmount;
-        promises.push(sendTransaction(i, saldAmount, usdtAmount, price));
+        promises.push(sendTransaction(i, saldAmount, price));
       }
       Promise.all(promises).then((results) => {
         const indexArr = results.map((res) => res.data.index);
@@ -77,9 +91,17 @@ export default function Home() {
     }
   };
 
-  // TODO: Add functionality to fetch every 10 seconds
   useEffect(() => {
     getOrderBooks();
+
+    const intervalId = setInterval(() => {
+      getOrderBooks();
+      setCompletedTradeIndexes([]);
+    }, 10000); // 10000 milliseconds = 10 seconds
+
+    return () => {
+      clearInterval(intervalId);
+    };
   }, []);
 
   return (
@@ -161,14 +183,6 @@ export default function Home() {
               })}
           </tbody>
         </table>
-      </div>
-      <div className="absolute right-0 top-0">
-        <div
-          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
-          role="alert"
-        >
-          <span className="block sm:inline">Refetching in {seconds}</span>
-        </div>
       </div>
     </main>
   );
